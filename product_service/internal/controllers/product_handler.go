@@ -3,8 +3,8 @@ package controllers
 import (
 	"encoding/json"
 	"net/http"
-	"order_processing_system/db/psql"
 	"order_processing_system/product_service/internal/services"
+	"order_processing_system/product_service/utils"
 
 	"github.com/gorilla/mux"
 )
@@ -88,7 +88,7 @@ func (c *Controller) ProductStock(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func (c *Controller) ProductCreate(w http.ResponseWriter, r *http.Request) {
-	var product psql.Product
+	var product utils.Product
 	err := json.NewDecoder(r.Body).Decode(&product)
 	if err != nil {
 		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
@@ -114,7 +114,7 @@ func (c *Controller) ProductUpdate(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 
-	var newProduct psql.Product
+	var newProduct utils.Product
 	err := json.NewDecoder(r.Body).Decode(&newProduct)
 	if err != nil {
 		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
