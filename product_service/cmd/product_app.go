@@ -77,14 +77,14 @@ func Run() error {
 		if err != nil {
 			log.Print(err)
 		} else {
-			fmt.Println("PSQL connection closed")
+			fmt.Println("Product PSQL connection closed")
 		}
 
 		err = redisConn.Close()
 		if err != nil {
 			log.Print(err)
 		} else {
-			fmt.Println("Redis connection closed")
+			fmt.Println("Product Redis connection closed")
 		}
 
 		server.StopServer(productSrv)
