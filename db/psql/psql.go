@@ -16,6 +16,20 @@ type Product struct {
 	Price         float64 `db:"price" json:"price"`
 	StockQuantity int     `db:"stock_quantity" json:"stock"`
 }
+
+func (p *Product) Validate() error {
+	if p.Name == "" {
+		return fmt.Errorf("name is required")
+	}
+	if p.Price <= 0 {
+		return fmt.Errorf("price must be greater than 0")
+	}
+	if p.StockQuantity <= 0 {
+		return fmt.Errorf("stock quantity must be greater than 0")
+	}
+	return nil
+}
+
 type ProductStock struct {
 	ID            int `db:"id" json:"id"`
 	StockQuantity int `db:"stock_quantity" json:"stock"`
@@ -35,8 +49,11 @@ type PostgresRepo struct {
 
 type PostgresCRUD interface {
 	GetProductsList() ([]Product, error)
-	GetProductByID(id string) (Product, error)
-	GetProductQuantity(id string) (Product, error)
+	GetProductByID(id int) (Product, error)
+	GetProductQuantity(id int) (Product, error)
+	PostProduct(product *Product) error
+	PutProduct(product *Product, newProduct Product) error
+	DeleteProduct(id int) error
 }
 
 func ConnectPSQL(config PSQLConfig) *sqlx.DB {
@@ -96,4 +113,39 @@ func (p *PostgresRepo) GetProductQuantity(id int) (ProductStock, error) {
 	}
 
 	return product, nil
+}
+
+func (p *PostgresRepo) PostProduct(product *Product) error {
+	err := p.DB.Get(product, "INSERT INTO product (name, description, price, stock_quantity) VALUES ($1, $2, $3, $4) RETURNING *", product.Name, product.Description, product.Price, product.StockQuantity)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *PostgresRepo) PutProduct(newProduct Product) (Product, error) {
+	var updated Product
+
+	err := p.DB.Get(&updated, `
+		UPDATE product 
+		SET name = $1, description = $2, price = $3, stock_quantity = $4 
+		WHERE id = $5 
+		RETURNING *`,
+		newProduct.Name, newProduct.Description, newProduct.Price, newProduct.StockQuantity, newProduct.ID,
+	)
+
+	if err != nil {
+		return Product{}, err
+	}
+
+	return updated, nil
+}
+
+func (p *PostgresRepo) DeleteProduct(id int) error {
+	_, err := p.DB.Exec("DELETE FROM product WHERE id = $1", id)
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -38,3 +38,27 @@ func (s *Service) GetProductStock(id string) (psql.ProductStock, error) {
 	}
 	return s.PSQLRepo.GetProductQuantity(product_id)
 }
+
+func (s *Service) CreateProduct(product *psql.Product) error {
+	err := product.Validate()
+	if err != nil {
+		return err
+	}
+	return s.PSQLRepo.PostProduct(product)
+}
+
+func (s *Service) UpdateProduct(newProduct psql.Product) (psql.Product, error) {
+	err := newProduct.Validate()
+	if err != nil {
+		return psql.Product{}, err
+	}
+	return s.PSQLRepo.PutProduct(newProduct)
+}
+
+func (s *Service) RemoveProduct(id string) error {
+	product_id, err := strconv.Atoi(id)
+	if err != nil {
+		return err
+	}
+	return s.PSQLRepo.DeleteProduct(product_id)
+}

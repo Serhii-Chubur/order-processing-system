@@ -34,5 +34,4 @@ go.work.sum
 
 user_service
 order_service
-middleware
 *.pdf
