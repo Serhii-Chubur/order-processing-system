@@ -16,6 +16,10 @@ type Product struct {
 	Price         float64 `db:"price" json:"price"`
 	StockQuantity int     `db:"stock_quantity" json:"stock"`
 }
+type ProductStock struct {
+	ID            int `db:"id" json:"id"`
+	StockQuantity int `db:"stock_quantity" json:"stock"`
+}
 
 type PSQLConfig struct {
 	Host     string
@@ -31,6 +35,8 @@ type PostgresRepo struct {
 
 type PostgresCRUD interface {
 	GetProductsList() ([]Product, error)
+	GetProductByID(id string) (Product, error)
+	GetProductQuantity(id string) (Product, error)
 }
 
 func ConnectPSQL(config PSQLConfig) *sqlx.DB {
@@ -69,4 +75,25 @@ func (p *PostgresRepo) GetProductsList() ([]Product, error) {
 	}
 
 	return products, nil
+}
+func (p *PostgresRepo) GetProductByID(id int) (Product, error) {
+	var product Product
+
+	err := p.DB.Get(&product, "SELECT * FROM product WHERE id = $1", id)
+	if err != nil {
+		return Product{}, err
+	}
+
+	return product, nil
+}
+
+func (p *PostgresRepo) GetProductQuantity(id int) (ProductStock, error) {
+	var product ProductStock
+
+	err := p.DB.Get(&product, "SELECT id, stock_quantity FROM product WHERE id = $1", id)
+	if err != nil {
+		return ProductStock{}, err
+	}
+
+	return product, nil
 }
