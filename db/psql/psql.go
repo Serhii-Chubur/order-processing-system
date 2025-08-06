@@ -31,6 +31,7 @@ type PostgresCRUD interface {
 	PutProduct(product *utils.Product, newProduct utils.Product) error
 	DeleteProduct(id int) error
 	PostUser(user *user_utils.User) error
+	GetUserByEmail(email string) (user_utils.User, error)
 }
 
 func ConnectPSQL(config PSQLConfig) *sqlx.DB {
@@ -110,6 +111,7 @@ func (p *PostgresRepo) GetProductsList() ([]utils.Product, error) {
 
 	return products, nil
 }
+
 func (p *PostgresRepo) GetProductByID(id int) (utils.Product, error) {
 	var product utils.Product
 
@@ -173,4 +175,22 @@ func (p *PostgresRepo) PostUser(user *user_utils.User) error {
 		return err
 	}
 	return nil
+}
+
+func (p *PostgresRepo) GetUserByEmail(email string) (user_utils.User, error) {
+	var user user_utils.User
+	err := p.DB.Get(&user, "SELECT * FROM users WHERE email = $1", email)
+	if err != nil {
+		return user_utils.User{}, err
+	}
+	return user, nil
+}
+
+func (p *PostgresRepo) GetUserInfo(email string) (user_utils.UserInfo, error) {
+	var user user_utils.UserInfo
+	err := p.DB.Get(&user, "SELECT id, username, email, created_at, is_admin FROM users WHERE email = $1", email)
+	if err != nil {
+		return user_utils.UserInfo{}, err
+	}
+	return user, nil
 }
