@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"log"
 	"order_processing_system/db/psql"
+	"order_processing_system/db/redis"
 	"order_processing_system/product_service/internal/controllers"
 	"order_processing_system/product_service/internal/server"
 	"order_processing_system/product_service/internal/services"
 	"os"
 	"os/signal"
+	"strconv"
 
 	"syscall"
 
@@ -35,32 +37,31 @@ func Run() error {
 		DBName:   os.Getenv("POSTGRES_DB"),
 	}
 
-	// redis_db, err := strconv.Atoi(os.Getenv("REDIS_DB"))
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// redisConfig := redis.RedisConfig{
-	// 	Addr:     os.Getenv("REDIS_ADDR"),
-	// 	Password: os.Getenv("REDIS_PASSWORD"),
-	// 	DB:       redis_db,
-	// }
+	redis_db, err := strconv.Atoi(os.Getenv("REDIS_DB"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	redisConfig := redis.RedisConfig{
+		Addr:     os.Getenv("REDIS_ADDR"),
+		Password: os.Getenv("REDIS_PASSWORD"),
+		DB:       redis_db,
+	}
 
 	psqlConn := psql.ConnectPSQL(psqlConfig)
-	// redisConn := redis.ConnectRedis(redisConfig)
+	redisConn := redis.ConnectRedis(redisConfig)
 
 	// repositories
 	psqlRepo := psql.NewPSQLRepo(psqlConn)
-	// redisRepo := redis.NewRedisRepo(redisConn)
+	redisRepo := redis.NewRedisRepo(redisConn)
 
 	// service
-	// service := services.NewService(psqlRepo, redisRepo)
-	service := services.NewService(psqlRepo)
+	productService := services.NewService(psqlRepo, redisRepo)
 
 	// controller
-	controller := controllers.NewController(errChan, service)
+	productController := controllers.NewController(errChan, productService)
 
 	// server
-	productSrv := server.NewServer(controller)
+	productSrv := server.NewServer(productController)
 	// userSrv := server.NewServer(controller)
 	// orderSrv := server.NewServer(controller)
 
@@ -79,12 +80,12 @@ func Run() error {
 			fmt.Println("PSQL connection closed")
 		}
 
-		// err = redisConn.Close()
-		// if err != nil {
-		// 	log.Print(err)
-		// } else {
-		// 	fmt.Println("Redis connection closed")
-		// }
+		err = redisConn.Close()
+		if err != nil {
+			log.Print(err)
+		} else {
+			fmt.Println("Redis connection closed")
+		}
 
 		server.StopServer(productSrv)
 		os.Exit(0)

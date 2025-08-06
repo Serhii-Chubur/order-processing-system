@@ -1,25 +1,45 @@
 package services
 
 import (
+	"encoding/json"
+	"fmt"
 	"order_processing_system/db/psql"
+	"order_processing_system/db/redis"
 	"strconv"
 )
 
 type Service struct {
-	// RedisRepo *redis.RedisRepo
-	PSQLRepo *psql.PostgresRepo
+	RedisRepo *redis.RedisRepo
+	PSQLRepo  *psql.PostgresRepo
 }
 
-func NewService(psqlRepo *psql.PostgresRepo) *Service {
-	// redisRepo *redis.RedisRepo,
+func NewService(psqlRepo *psql.PostgresRepo, redisRepo *redis.RedisRepo) *Service {
 	return &Service{
-		// RedisRepo: redisRepo,
-		PSQLRepo: psqlRepo,
+		RedisRepo: redisRepo,
+		PSQLRepo:  psqlRepo,
 	}
 }
 
 func (s *Service) GetAllProducts() ([]psql.Product, error) {
-	return s.PSQLRepo.GetProductsList()
+	cacheKey := "products_all"
+	cached, err := s.RedisRepo.GetData(cacheKey)
+	if err == nil {
+		var products []psql.Product
+		if err := json.Unmarshal([]byte(cached), &products); err == nil {
+			return products, nil
+		}
+	}
+
+	products, err := s.PSQLRepo.GetProductsList()
+	if err != nil {
+		return []psql.Product{}, err
+	}
+
+	jsonData, err := json.Marshal(products)
+	if err == nil {
+		s.RedisRepo.SetCache(cacheKey, jsonData)
+	}
+	return products, nil
 }
 
 func (s *Service) GetProduct(id string) (psql.Product, error) {
@@ -27,7 +47,25 @@ func (s *Service) GetProduct(id string) (psql.Product, error) {
 	if err != nil {
 		return psql.Product{}, err
 	}
-	return s.PSQLRepo.GetProductByID(product_id)
+
+	cacheKey := "product_" + id
+	cached, err := s.RedisRepo.GetData(cacheKey)
+	if err == nil {
+		var product psql.Product
+		if err := json.Unmarshal([]byte(cached), &product); err == nil {
+			return product, nil
+		}
+	}
+	product, err := s.PSQLRepo.GetProductByID(product_id)
+	if err != nil {
+		return psql.Product{}, err
+	}
+
+	jsonData, err := json.Marshal(product)
+	if err == nil {
+		s.RedisRepo.SetCache(cacheKey, jsonData)
+	}
+	return product, nil
 
 }
 
@@ -35,6 +73,24 @@ func (s *Service) GetProductStock(id string) (psql.ProductStock, error) {
 	product_id, err := strconv.Atoi(id)
 	if err != nil {
 		return psql.ProductStock{}, err
+	}
+	cacheKey := "product_stock_" + id
+	cached, err := s.RedisRepo.GetData(cacheKey)
+	if err == nil {
+		var stock psql.ProductStock
+		if err := json.Unmarshal([]byte(cached), &stock); err == nil {
+			return stock, nil
+		}
+	}
+
+	productStock, err := s.PSQLRepo.GetProductQuantity(product_id)
+	if err != nil {
+		return psql.ProductStock{}, err
+	}
+
+	jsonData, err := json.Marshal(productStock)
+	if err == nil {
+		s.RedisRepo.SetCache(cacheKey, jsonData)
 	}
 	return s.PSQLRepo.GetProductQuantity(product_id)
 }
@@ -52,6 +108,9 @@ func (s *Service) UpdateProduct(newProduct psql.Product) (psql.Product, error) {
 	if err != nil {
 		return psql.Product{}, err
 	}
+	cacheKey := fmt.Sprintf("product_%d", newProduct.ID)
+	s.RedisRepo.DeleteProduct(cacheKey)
+
 	return s.PSQLRepo.PutProduct(newProduct)
 }
 
@@ -60,5 +119,8 @@ func (s *Service) RemoveProduct(id string) error {
 	if err != nil {
 		return err
 	}
+	cacheKey := "product_" + id
+	s.RedisRepo.DeleteProduct(cacheKey)
+
 	return s.PSQLRepo.DeleteProduct(product_id)
 }
