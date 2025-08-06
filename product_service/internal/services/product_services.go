@@ -110,7 +110,7 @@ func (s *Service) UpdateProduct(newProduct utils.Product) (utils.Product, error)
 		return utils.Product{}, err
 	}
 	cacheKey := fmt.Sprintf("product_%d", newProduct.ID)
-	s.RedisRepo.DeleteProduct(cacheKey)
+	s.RedisRepo.Delete(cacheKey)
 
 	return s.PSQLRepo.PutProduct(newProduct)
 }
@@ -121,7 +121,7 @@ func (s *Service) RemoveProduct(id string) error {
 		return err
 	}
 	cacheKey := "product_" + id
-	s.RedisRepo.DeleteProduct(cacheKey)
+	s.RedisRepo.Delete(cacheKey)
 
 	return s.PSQLRepo.DeleteProduct(product_id)
 }

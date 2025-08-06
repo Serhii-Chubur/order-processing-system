@@ -32,6 +32,9 @@ type PostgresCRUD interface {
 	DeleteProduct(id int) error
 	PostUser(user *user_utils.User) error
 	GetUserByEmail(email string) (user_utils.User, error)
+	GetUserByID(id int) (user_utils.User, error)
+	GetUserInfo(email string) (user_utils.UserInfo, error)
+	PutUser(user *user_utils.UserInput, id int) error
 }
 
 func ConnectPSQL(config PSQLConfig) *sqlx.DB {
@@ -193,4 +196,21 @@ func (p *PostgresRepo) GetUserInfo(email string) (user_utils.UserInfo, error) {
 		return user_utils.UserInfo{}, err
 	}
 	return user, nil
+}
+
+func (p *PostgresRepo) GetUserById(id int) (user_utils.User, error) {
+	var user user_utils.User
+	err := p.DB.Get(&user, "SELECT * FROM users WHERE id = $1", id)
+	if err != nil {
+		return user_utils.User{}, err
+	}
+	return user, nil
+}
+
+func (p *PostgresRepo) PutUser(user *user_utils.UserInput, id int) error {
+	_, err := p.DB.Exec("UPDATE users SET username = $1, email = $2, password_hash = $3, is_admin = $4 WHERE id = $5", user.Username, user.Email, user.Password, user.IsAdmin, id)
+	if err != nil {
+		return err
+	}
+	return nil
 }

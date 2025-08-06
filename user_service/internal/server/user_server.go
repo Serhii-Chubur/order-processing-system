@@ -15,6 +15,7 @@ func NewServer(c *controllers.Controller) *http.Server {
 
 	userRouter.HandleFunc("/register", c.RegisterUser).Methods("POST")
 	userRouter.HandleFunc("/login", c.Login).Methods("POST")
+	userRouter.HandleFunc("/refresh", c.Refresh).Methods("POST")
 	userRouter.HandleFunc("/{id}", c.GetUserProfile).Methods("GET")
 	userRouter.HandleFunc("/{id}", c.UpdateUserProfile).Methods("PUT")
 	userRouter.HandleFunc("/logout", c.Logout).Methods("POST")

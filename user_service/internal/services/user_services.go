@@ -5,6 +5,7 @@ import (
 	"order_processing_system/db/psql"
 	"order_processing_system/db/redis"
 	"order_processing_system/user_service/user_utils"
+	"strconv"
 	"time"
 
 	"github.com/badoux/checkmail"
@@ -69,8 +70,33 @@ func (s *Service) GenerateTokens(user user_utils.User) (string, string, error) {
 	return accessToken, refreshToken, nil
 }
 
-func (s *Service) GetEmail(accessToken string) (string, error) {
-	return s.RedisRepo.GetUserEmail(accessToken)
+func (s *Service) GetEmail(token string) (string, error) {
+	return s.RedisRepo.GetUserEmail(token)
+}
+func (s *Service) GetUser(id string) (user_utils.User, error) {
+	u_id, err := strconv.Atoi(id)
+	if err != nil {
+		return user_utils.User{}, err
+	}
+	return s.PSQLRepo.GetUserById(u_id)
+}
+
+func (s *Service) UpdateUserInfo(userData user_utils.UserInput, id string) error {
+	u_id, err := strconv.Atoi(id)
+	if err != nil {
+		return err
+	}
+	hashedPassword, err := user_utils.HashPassword(userData.Password)
+	if err != nil {
+		return err
+	}
+	userData.Password = hashedPassword
+	return s.PSQLRepo.PutUser(&userData, u_id)
+
+}
+
+func (s *Service) DeleteToken(token string) error {
+	return s.RedisRepo.Delete(token)
 }
 
 // func (s *Service) RevokeToken(email string) error {

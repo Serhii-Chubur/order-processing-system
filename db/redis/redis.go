@@ -58,8 +58,8 @@ func (r *RedisRepo) SetCache(cacheKey string, data []byte) error {
 	return r.Client.Set(context.Background(), cacheKey, data, 3*time.Minute).Err()
 }
 
-func (r *RedisRepo) DeleteProduct(cacheKey string) error {
-	return r.Client.Del(context.Background(), cacheKey).Err()
+func (r *RedisRepo) Delete(key string) error {
+	return r.Client.Del(context.Background(), key).Err()
 }
 
 func (r *RedisRepo) SetAccessToken(email string, accessToken string) error {
@@ -70,6 +70,6 @@ func (r *RedisRepo) SetRefreshToken(email string, refreshToken string) error {
 	return r.Client.Set(context.Background(), refreshToken, email, 3*time.Hour).Err()
 }
 
-func (r *RedisRepo) GetUserEmail(accessToken string) (string, error) {
-	return r.Client.Get(context.Background(), accessToken).Result()
+func (r *RedisRepo) GetUserEmail(token string) (string, error) {
+	return r.Client.Get(context.Background(), token).Result()
 }
