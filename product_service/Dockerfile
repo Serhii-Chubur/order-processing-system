@@ -1,0 +1,10 @@
+FROM golang:1.24-alpine
+
+WORKDIR /usr/src/app
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+CMD ["go", "run", "./product_service/main.go"]

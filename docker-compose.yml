@@ -1,0 +1,81 @@
+services:
+  product_service:
+    container_name: product_service
+    hostname: product_service
+    env_file:
+      - db/configs/.env
+    build:
+      context: .
+      dockerfile: ./product_service/Dockerfile
+    ports:
+      - 8001:8001
+    depends_on:
+      - psql
+      - redis
+    restart: unless-stopped
+    networks:
+      - some-network
+
+  user_service:
+    container_name: user_service
+    hostname: user_service
+    env_file:
+      - db/configs/.env
+    build:
+      context: .
+      dockerfile: ./user_service/Dockerfile
+    ports:
+      - 8003:8003
+    depends_on:
+      - psql
+      - redis
+    restart: unless-stopped
+    networks:
+      - some-network
+
+  # order_service:
+  #   container_name: order_service
+  #   hostname: order_service
+  #   env_file:
+  #     - db/configs/.env
+  #   build:
+  #     context: ./order_service
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - 8003:8003
+  #   depends_on:
+  #     - psql
+  #     - redis
+  #   restart: unless-stopped
+  #   networks:
+  #     - some-network
+
+  psql:
+    container_name: service_psql
+    hostname: psql
+    image: postgres:14-alpine
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    restart: unless-stopped
+    networks:
+      - some-network
+    
+  redis:
+    container_name: service_redis
+    hostname: redis
+    image: redis:alpine
+    ports:
+      - 6379:6379
+    restart: unless-stopped
+    networks:
+      - some-network
+
+
+networks:
+  some-network: {
+        driver: bridge
+  }
