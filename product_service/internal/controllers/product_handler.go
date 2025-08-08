@@ -87,6 +87,7 @@ func (c *Controller) ProductStock(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to encode JSON", http.StatusInternalServerError)
 	}
 }
+
 func (c *Controller) ProductCreate(w http.ResponseWriter, r *http.Request) {
 	var product utils.Product
 	err := json.NewDecoder(r.Body).Decode(&product)

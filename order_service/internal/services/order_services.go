@@ -1,6 +1,7 @@
 package services
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -41,6 +42,16 @@ func (s *Service) CreateOrder(orderData *models.OrderInput, user_id int) (*model
 }
 
 func (s *Service) GetOrderById(id string, is_admin bool, user_id int) (*models.OrderDetail, error) {
+
+	cacheKey := "order_" + id
+	cached, err := s.RedisRepo.GetData(cacheKey)
+	if err == nil {
+		var order *models.OrderDetail
+		if err := json.Unmarshal([]byte(cached), &order); err == nil {
+			return order, nil
+		}
+	}
+
 	o_id, err := strconv.Atoi(id)
 	if err != nil {
 		log.Println(err)
@@ -81,14 +92,32 @@ func (s *Service) GetOrderById(id string, is_admin bool, user_id int) (*models.O
 		orderDeatil.Products = append(orderDeatil.Products, product)
 	}
 
+	jsonData, err := json.Marshal(orderDeatil)
+	if err == nil {
+		s.RedisRepo.SetCache(cacheKey, jsonData)
+	}
+
 	return orderDeatil, nil
 }
 
 func (s *Service) GetOrdersByUserId(id string, is_admin bool, user_id int) ([]models.Order, error) {
+	cacheKey := "user_" + id + "_orders"
+	cached, err := s.RedisRepo.GetData(cacheKey)
+	if err == nil {
+		var orders []models.Order
+		if err := json.Unmarshal([]byte(cached), &orders); err == nil {
+			return orders, nil
+		}
+	}
+
 	u_id, err := strconv.Atoi(id)
 	if err != nil {
 		log.Println(err)
 		return nil, err
+	}
+
+	if !is_admin && u_id != user_id {
+		return nil, errors.New("forbidden access to another user's orders")
 	}
 
 	orders, err := s.PSQLRepo.GetUserOrders(u_id)
@@ -101,8 +130,19 @@ func (s *Service) GetOrdersByUserId(id string, is_admin bool, user_id int) ([]mo
 		return nil, fmt.Errorf("no orders found for user id %d", u_id)
 	}
 
-	if !is_admin && u_id != user_id {
-		return nil, errors.New("forbidden access to another user's orders")
+	for i, order := range orders {
+		productsIds, err := s.PSQLRepo.GetOrderProducts(order.ID)
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
+
+		orders[i].Products = append(orders[i].Products, productsIds...)
+	}
+
+	jsonData, err := json.Marshal(orders)
+	if err == nil {
+		s.RedisRepo.SetCache(cacheKey, jsonData)
 	}
 
 	return orders, nil

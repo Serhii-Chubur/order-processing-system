@@ -79,6 +79,7 @@ func (c *Controller) OrderList(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Controller) OrderDetail(w http.ResponseWriter, r *http.Request) {
+
 	vars := mux.Vars(r)
 	id := vars["id"]
 

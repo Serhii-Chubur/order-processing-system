@@ -39,10 +39,10 @@ services:
     env_file:
       - db/configs/.env
     build:
-      context: ./order_service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./order_service/Dockerfile
     ports:
-      - 8003:8003
+      - 8002:8002
     depends_on:
       - psql
       - redis
@@ -56,10 +56,8 @@ services:
     image: postgres:14-alpine
     ports:
       - 5432:5432
-    environment:
-      - POSTGRES_DB=postgres
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
+    env_file:
+      - db/configs/.env
     restart: unless-stopped
     networks:
       - some-network
