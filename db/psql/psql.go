@@ -3,6 +3,7 @@ package psql
 import (
 	"fmt"
 	"log"
+	"order_processing_system/order_service/order_utils/models"
 	"order_processing_system/product_service/utils"
 	"order_processing_system/user_service/user_utils"
 
@@ -50,7 +51,8 @@ func ConnectPSQL(config PSQLConfig) *sqlx.DB {
 
 	_, err = DB.Exec(`CREATE TABLE IF NOT EXISTS product (
 		id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-		name TEXT NOT NULL, description TEXT,
+		name VARCHAR(255) NOT NULL,
+		description TEXT,
 		price NUMERIC(10, 2) NOT NULL,
 		stock_quantity INT NOT NULL
 		)`)
@@ -61,8 +63,8 @@ func ConnectPSQL(config PSQLConfig) *sqlx.DB {
 
 	_, err = DB.Exec(`CREATE TABLE IF NOT EXISTS users (
 		id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-		username TEXT NOT NULL,
-		email TEXT NOT NULL,
+		username VARCHAR(255) NOT NULL,
+		email VARCHAR(255) NOT NULL,
 		password_hash TEXT NOT NULL,
 		is_admin BOOL NOT NULL,
 		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -76,6 +78,7 @@ func ConnectPSQL(config PSQLConfig) *sqlx.DB {
 		id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 		user_id BIGINT NOT NULL REFERENCES users (id),
 		order_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+		status VARCHAR(255) NOT NULL,
 		total_amount NUMERIC(10, 2) NOT NULL
 	)`)
 
@@ -83,7 +86,7 @@ func ConnectPSQL(config PSQLConfig) *sqlx.DB {
 		log.Fatal(err)
 	}
 
-	_, err = DB.Exec(`CREATE TABLE IF NOT EXISTS orders_product (
+	_, err = DB.Exec(`CREATE TABLE IF NOT EXISTS order_product (
 		order_id BIGINT NOT NULL REFERENCES orders (id),
 		product_id BIGINT NOT NULL REFERENCES product (id),
 		quantity INT NOT NULL,
@@ -171,6 +174,14 @@ func (p *PostgresRepo) DeleteProduct(id int) error {
 	return nil
 }
 
+func (p *PostgresRepo) DecreaseProductStock(productID int, quantity int) error {
+	_, err := p.DB.Exec("UPDATE product SET stock_quantity = stock_quantity - $1 WHERE id = $2", quantity, productID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (p *PostgresRepo) PostUser(user *user_utils.User) error {
 	err := p.DB.Get(user, "INSERT INTO users (username, email, password_hash, is_admin) VALUES ($1, $2, $3, $4) RETURNING *", user.Username, user.Email, user.Password, user.IsAdmin)
 	if err != nil {
@@ -213,4 +224,34 @@ func (p *PostgresRepo) PutUser(user *user_utils.UserInput, id int) error {
 		return err
 	}
 	return nil
+}
+
+func (p *PostgresRepo) PostOrder(order *models.Order) (*models.Order, error) {
+	tx, err := p.DB.Beginx()
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		} else {
+			tx.Commit()
+		}
+	}()
+
+	err = tx.Get(order, "INSERT INTO orders (user_id, status, total_amount, order_date) VALUES ($1, $2, $3, $4) RETURNING *", order.UserID, order.Status, order.TotalAmount, order.OrderDate)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	for _, product := range order.Products {
+		_, err = tx.Exec("INSERT INTO order_product (order_id, product_id, quantity) VALUES ($1, $2, $3)", order.ID, product.ProductID, product.Quantity)
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
+	}
+	return order, nil
 }

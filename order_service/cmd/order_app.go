@@ -7,7 +7,7 @@ import (
 	"order_processing_system/db/redis"
 	"order_processing_system/order_service/internal/controllers"
 	"order_processing_system/order_service/internal/server"
-	"order_processing_system/orderservice/internal/services"
+	"order_processing_system/order_service/internal/services"
 	"os"
 	"os/signal"
 	"strconv"

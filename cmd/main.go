@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"log"
 
+	order_app "order_processing_system/order_service/cmd"
 	product_app "order_processing_system/product_service/cmd"
 	user_app "order_processing_system/user_service/cmd"
-	// order_app "order_processing_system/order_service/cmd"
 )
 
 func main() {
@@ -20,11 +20,12 @@ func main() {
 		}
 	}()
 
-	// go func () {
-	// 	if err := order_app.Run(); err != nil {
-	// 	errChan <- fmt.Errorf("order service: %w", err)
-	// }
-	// }()
+	go func() {
+		fmt.Println("Hello order")
+		if err := order_app.Run(); err != nil {
+			errChan <- fmt.Errorf("order service: %w", err)
+		}
+	}()
 
 	go func() {
 		fmt.Println("Hello user")

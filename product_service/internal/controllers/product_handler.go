@@ -92,6 +92,7 @@ func (c *Controller) ProductCreate(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&product)
 	if err != nil {
 		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
+		return
 	}
 
 	err = c.s.CreateProduct(&product)
