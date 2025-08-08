@@ -6,6 +6,8 @@ import (
 	"os"
 	"time"
 
+	"order_processing_system/db/redis"
+
 	"github.com/badoux/checkmail"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/joho/godotenv"
@@ -48,12 +50,6 @@ type LoginInput struct {
 	Password string `json:"password"`
 }
 
-type Claims struct {
-	Email string `json:"email"`
-	ID    int    `json:"id"`
-	jwt.RegisteredClaims
-}
-
 type TokenRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }
@@ -92,9 +88,10 @@ func CheckPassword(password, hash string) error {
 }
 
 func GenerateAccessToken(user User) (string, error) {
-	accessClaims := &Claims{
+	accessClaims := &redis.Claims{
 		Email: user.Email,
 		ID:    user.ID,
+		Root:  user.IsAdmin,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 15)),
 		},
@@ -109,9 +106,10 @@ func GenerateAccessToken(user User) (string, error) {
 }
 
 func GenerateRefreshToken(user User) (string, error) {
-	refreshClaims := &Claims{
+	refreshClaims := &redis.Claims{
 		Email: user.Email,
 		ID:    user.ID,
+		Root:  user.IsAdmin,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 1)),
 		},
@@ -124,25 +122,3 @@ func GenerateRefreshToken(user User) (string, error) {
 
 	return refresh, nil
 }
-
-// func ParseToken(tokenStr string) (*Claims, error) {
-// 	fmt.Println("JWT_SECRET:", os.Getenv("JWT_SECRET"))
-
-// 	fmt.Println(tokenStr)
-// 	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-// 		return []byte(os.Getenv("JWT_SECRET")), nil
-// 	})
-// 	fmt.Println(token.Claims)
-
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	claims, ok := token.Claims.(*Claims)
-// 	fmt.Println(claims)
-// 	if !ok || !token.Valid {
-// 		return nil, errors.New("invalid token")
-// 	}
-
-// 	return claims, nil
-// }

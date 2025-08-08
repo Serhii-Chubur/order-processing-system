@@ -2,9 +2,12 @@ package redis
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -72,4 +75,33 @@ func (r *RedisRepo) SetRefreshToken(email string, refreshToken string) error {
 
 func (r *RedisRepo) GetUserEmail(token string) (string, error) {
 	return r.Client.Get(context.Background(), token).Result()
+}
+
+type Claims struct {
+	Email string `json:"email"`
+	ID    int    `json:"id"`
+	Root  bool   `json:"is_admin"`
+	jwt.RegisteredClaims
+}
+
+func ParseToken(tokenStr string) (*Claims, error) {
+	fmt.Println("JWT_SECRET:", os.Getenv("JWT_SECRET"))
+
+	fmt.Println(tokenStr)
+	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(os.Getenv("JWT_SECRET")), nil
+	})
+	fmt.Println(token.Claims)
+
+	if err != nil {
+		return nil, err
+	}
+
+	claims, ok := token.Claims.(*Claims)
+	fmt.Println(claims)
+	if !ok || !token.Valid {
+		return nil, errors.New("invalid token")
+	}
+
+	return claims, nil
 }

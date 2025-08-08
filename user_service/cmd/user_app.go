@@ -61,9 +61,7 @@ func Run() error {
 	userController := controllers.NewController(errChan, userService)
 
 	// server
-	// productSrv := server.NewServer(productController)
 	userSrv := server.NewServer(userController)
-	// orderSrv := server.NewServer(controller)
 
 	go func() {
 		select {

@@ -5,9 +5,9 @@ import (
 	"log"
 	"order_processing_system/db/psql"
 	"order_processing_system/db/redis"
-	"order_processing_system/product_service/internal/controllers"
-	"order_processing_system/product_service/internal/server"
-	"order_processing_system/product_service/internal/services"
+	"order_processing_system/order_service/internal/controllers"
+	"order_processing_system/order_service/internal/server"
+	"order_processing_system/orderservice/internal/services"
 	"os"
 	"os/signal"
 	"strconv"
@@ -58,10 +58,10 @@ func Run() error {
 	productService := services.NewService(psqlRepo, redisRepo)
 
 	// controller
-	productController := controllers.NewController(errChan, productService)
+	orderController := controllers.NewController(errChan, productService)
 
 	// server
-	productSrv := server.NewServer(productController)
+	orderSrv := server.NewServer(orderController)
 
 	go func() {
 		select {
@@ -85,10 +85,10 @@ func Run() error {
 			fmt.Println("Product Redis connection closed")
 		}
 
-		server.StopServer(productSrv)
+		server.StopServer(orderSrv)
 		os.Exit(0)
 	}()
 
-	server.StartServer(productSrv)
+	server.StartServer(orderSrv)
 	return nil
 }
