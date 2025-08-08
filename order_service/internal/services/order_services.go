@@ -155,7 +155,7 @@ func (s *Service) UpdateOrderStatus(id string, status string) error {
 		return err
 	}
 
-	if status != "created" && status != "processing" && status != "delivered" && status != "cancelled" {
+	if status != "processing" && status != "delivered" && status != "cancelled" {
 		return errors.New("invalid status")
 	}
 
