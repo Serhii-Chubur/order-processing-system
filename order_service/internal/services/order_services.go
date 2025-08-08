@@ -8,6 +8,7 @@ import (
 	"order_processing_system/db/redis"
 	"order_processing_system/order_service/order_utils"
 	"order_processing_system/order_service/order_utils/models"
+	"order_processing_system/product_service/utils"
 	"strconv"
 	"time"
 )
@@ -39,7 +40,7 @@ func (s *Service) CreateOrder(orderData *models.OrderInput, user_id int) (*model
 	return s.PSQLRepo.PostOrder(&order)
 }
 
-func (s *Service) GetOrderById(id string, is_admin bool, user_id int) (*models.Order, error) {
+func (s *Service) GetOrderById(id string, is_admin bool, user_id int) (*models.OrderDetail, error) {
 	o_id, err := strconv.Atoi(id)
 	if err != nil {
 		log.Println(err)
@@ -51,11 +52,36 @@ func (s *Service) GetOrderById(id string, is_admin bool, user_id int) (*models.O
 		log.Println(err)
 		return nil, err
 	}
+
 	if !is_admin && order.UserID != user_id {
 		return nil, errors.New("forbidden access to another user's order")
 	}
 
-	return order, nil
+	productsIds, err := s.PSQLRepo.GetOrderProducts(o_id)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	orderDeatil := &models.OrderDetail{
+		ID:          order.ID,
+		UserID:      order.UserID,
+		OrderDate:   order.OrderDate,
+		Status:      order.Status,
+		TotalAmount: order.TotalAmount,
+		Products:    []utils.Product{},
+	}
+
+	for _, product := range productsIds {
+		product, err := s.PSQLRepo.GetProductByID(product.ProductID)
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
+		orderDeatil.Products = append(orderDeatil.Products, product)
+	}
+
+	return orderDeatil, nil
 }
 
 func (s *Service) GetOrdersByUserId(id string, is_admin bool, user_id int) ([]models.Order, error) {
@@ -87,6 +113,24 @@ func (s *Service) UpdateOrderStatus(id string, status string) error {
 	if err != nil {
 		log.Println(err)
 		return err
+	}
+
+	if status != "created" && status != "processing" && status != "delivered" && status != "cancelled" {
+		return errors.New("invalid status")
+	}
+
+	if status == "cancelled" {
+		order, err := s.PSQLRepo.GetOrder(o_id)
+
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+		for _, product := range order.Products {
+			p_id := product.ProductID
+			quantity := product.Quantity
+			s.PSQLRepo.IncreaseProductStock(p_id, quantity)
+		}
 	}
 
 	return s.PSQLRepo.PutOrderStatus(o_id, status)

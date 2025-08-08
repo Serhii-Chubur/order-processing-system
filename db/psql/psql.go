@@ -183,6 +183,15 @@ func (p *PostgresRepo) DecreaseProductStock(productID int, quantity int) error {
 	return nil
 }
 
+func (p *PostgresRepo) IncreaseProductStock(productID int, quantity int) error {
+	fmt.Println(productID, quantity)
+	_, err := p.DB.Exec("UPDATE product SET stock_quantity = stock_quantity + $1 WHERE id = $2", quantity, productID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (p *PostgresRepo) PostUser(user *user_utils.User) error {
 	err := p.DB.Get(user, "INSERT INTO users (username, email, password_hash, is_admin) VALUES ($1, $2, $3, $4) RETURNING *", user.Username, user.Email, user.Password, user.IsAdmin)
 	if err != nil {
@@ -295,3 +304,51 @@ func (p *PostgresRepo) PutOrderStatus(o_id int, status string) error {
 	}
 	return nil
 }
+
+func (p *PostgresRepo) GetOrderProducts(o_id int) ([]models.OrderProduct, error) {
+	var order_products []models.OrderProduct
+	err := p.DB.Select(&order_products, "SELECT product_id, quantity FROM order_product WHERE order_id = $1", o_id)
+	if err != nil {
+		log.Println(err)
+		return nil, errors.New("order products not found")
+	}
+	return order_products, nil
+}
+
+// func (p *PostgresRepo) DeleteOrder(o_id int) error {
+
+// 	tx, err := p.DB.Beginx()
+// 	if err != nil {
+// 		log.Println(err)
+// 		return err
+// 	}
+
+// 	defer func() {
+// 		if err != nil {
+// 			tx.Rollback()
+// 		} else {
+// 			tx.Commit()
+// 		}
+// 	}()
+
+// 	order, err := p.GetOrder(o_id)
+// 	if err != nil {
+// 		log.Println(err)
+// 		return err
+// 	}
+
+// 	for _, product := range order.Products {
+// 		_, err = p.DB.Exec("DELETE FROM order_product WHERE order_id = $1 AND product_id = $2", o_id, product.ProductID)
+// 		if err != nil {
+// 			log.Println(err)
+// 			return err
+// 		}
+// 	}
+
+// 	_, err = p.DB.Exec("DELETE FROM orders WHERE id = $1", o_id)
+// 	if err != nil {
+// 		log.Println(err)
+// 		return err
+// 	}
+// 	return nil
+// }
