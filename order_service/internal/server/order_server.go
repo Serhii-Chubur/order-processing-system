@@ -17,11 +17,11 @@ func NewServer(c *controllers.Controller) *http.Server {
 
 	orderRouter.HandleFunc("", c.OrderList).Methods("POST")
 	orderRouter.HandleFunc("/{id}", c.OrderDetail).Methods("GET")
+	orderRouter.HandleFunc("/user/{id}", c.UserOrders).Methods("GET")
 
 	adminRouter := r.PathPrefix("/api/orders").Subrouter()
 	adminRouter.Use(middleware.IsAdmin)
 
-	adminRouter.HandleFunc("/user/{id}", c.UserOrders).Methods("GET")
 	adminRouter.HandleFunc("/{id}/status", c.UpdateOrderStatus).Methods("PUT")
 
 	fmt.Println("http://localhost:8002/api/orders/")

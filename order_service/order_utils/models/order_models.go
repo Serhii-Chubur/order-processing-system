@@ -26,3 +26,7 @@ type Product struct {
 	Price         float64 `db:"price" json:"price"`
 	StockQuantity int     `db:"stock_quantity" json:"stock"`
 }
+
+type StatusUpdate struct {
+	Status string `json:"status"`
+}

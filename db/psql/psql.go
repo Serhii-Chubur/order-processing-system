@@ -1,6 +1,7 @@
 package psql
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"order_processing_system/order_service/order_utils/models"
@@ -254,4 +255,43 @@ func (p *PostgresRepo) PostOrder(order *models.Order) (*models.Order, error) {
 		}
 	}
 	return order, nil
+}
+
+func (p *PostgresRepo) GetOrder(o_id int) (*models.Order, error) {
+	var order models.Order
+	err := p.DB.Get(&order, "SELECT * FROM orders WHERE id = $1", o_id)
+	if err != nil {
+		log.Println(err)
+		return nil, errors.New("order not found")
+	}
+	return &order, nil
+}
+
+func (p *PostgresRepo) GetUserOrders(user_id int) ([]models.Order, error) {
+	var orders []models.Order
+	err := p.DB.Select(&orders, "SELECT * FROM orders WHERE user_id = $1", user_id)
+	if err != nil {
+		log.Println(err)
+		return nil, errors.New("orders not found")
+	}
+	return orders, nil
+}
+
+func (p *PostgresRepo) PutOrderStatus(o_id int, status string) error {
+	res, err := p.DB.Exec("UPDATE orders SET status = $1 WHERE id = $2", status, o_id)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return errors.New("order not found")
+	}
+	return nil
 }
