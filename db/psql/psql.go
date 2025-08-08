@@ -184,7 +184,6 @@ func (p *PostgresRepo) DecreaseProductStock(productID int, quantity int) error {
 }
 
 func (p *PostgresRepo) IncreaseProductStock(productID int, quantity int) error {
-	fmt.Println(productID, quantity)
 	_, err := p.DB.Exec("UPDATE product SET stock_quantity = stock_quantity + $1 WHERE id = $2", quantity, productID)
 	if err != nil {
 		return err
@@ -273,6 +272,13 @@ func (p *PostgresRepo) GetOrder(o_id int) (*models.Order, error) {
 		log.Println(err)
 		return nil, errors.New("order not found")
 	}
+	var order_products []models.OrderProduct
+	err = p.DB.Select(&order_products, "SELECT product_id, quantity FROM order_product WHERE order_id = $1", o_id)
+	if err != nil {
+		log.Println(err)
+		return nil, errors.New("order not found")
+	}
+	order.Products = order_products
 	return &order, nil
 }
 

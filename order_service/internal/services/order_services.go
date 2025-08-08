@@ -122,6 +122,10 @@ func (s *Service) UpdateOrderStatus(id string, status string) error {
 	if status == "cancelled" {
 		order, err := s.PSQLRepo.GetOrder(o_id)
 
+		if order.Status == status {
+			return errors.New("order already cancelled")
+		}
+
 		if err != nil {
 			log.Println(err)
 			return err
