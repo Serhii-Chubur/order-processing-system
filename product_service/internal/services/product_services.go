@@ -5,19 +5,22 @@ import (
 	"fmt"
 	"order_processing_system/db/psql"
 	"order_processing_system/db/redis"
+	"order_processing_system/product_service/internal/natsclient"
 	"order_processing_system/product_service/utils"
 	"strconv"
 )
 
 type Service struct {
-	RedisRepo *redis.RedisRepo
-	PSQLRepo  *psql.PostgresRepo
+	RedisRepo  *redis.RedisRepo
+	PSQLRepo   *psql.PostgresRepo
+	NATSClient *natsclient.ProductNATS
 }
 
-func NewService(psqlRepo *psql.PostgresRepo, redisRepo *redis.RedisRepo) *Service {
+func NewService(psqlRepo *psql.PostgresRepo, redisRepo *redis.RedisRepo, natsClient *natsclient.ProductNATS) *Service {
 	return &Service{
-		RedisRepo: redisRepo,
-		PSQLRepo:  psqlRepo,
+		RedisRepo:  redisRepo,
+		PSQLRepo:   psqlRepo,
+		NATSClient: natsClient,
 	}
 }
 
@@ -101,7 +104,25 @@ func (s *Service) CreateProduct(product *utils.Product) error {
 	if err != nil {
 		return err
 	}
-	return s.PSQLRepo.PostProduct(product)
+
+	err = s.PSQLRepo.PostProduct(product)
+	if err != nil {
+		return err
+	}
+
+	// NATS product created
+
+	productData, err := json.Marshal(product)
+	if err != nil {
+		return err
+	}
+
+	err = s.NATSClient.Publish("product.created", productData)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *Service) UpdateProduct(newProduct utils.Product) (utils.Product, error) {
@@ -112,7 +133,24 @@ func (s *Service) UpdateProduct(newProduct utils.Product) (utils.Product, error)
 	cacheKey := fmt.Sprintf("product_%d", newProduct.ID)
 	s.RedisRepo.Delete(cacheKey)
 
-	return s.PSQLRepo.PutProduct(newProduct)
+	product, err := s.PSQLRepo.PutProduct(newProduct)
+	if err != nil {
+		return utils.Product{}, err
+	}
+
+	// NATS product updated
+
+	productData, err := json.Marshal(product)
+	if err != nil {
+		return utils.Product{}, err
+	}
+
+	err = s.NATSClient.Publish("product.updated", productData)
+	if err != nil {
+		return utils.Product{}, err
+	}
+
+	return product, nil
 }
 
 func (s *Service) RemoveProduct(id string) error {
@@ -123,5 +161,17 @@ func (s *Service) RemoveProduct(id string) error {
 	cacheKey := "product_" + id
 	s.RedisRepo.Delete(cacheKey)
 
-	return s.PSQLRepo.DeleteProduct(product_id)
+	err = s.PSQLRepo.DeleteProduct(product_id)
+	if err != nil {
+		return err
+	}
+
+	// NATS product deleted
+
+	err = s.NATSClient.Publish("product.deleted", []byte(id))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

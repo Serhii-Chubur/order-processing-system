@@ -12,6 +12,7 @@ services:
     depends_on:
       - psql
       - redis
+      - nats
     restart: unless-stopped
     networks:
       - some-network
@@ -46,6 +47,9 @@ services:
     depends_on:
       - psql
       - redis
+      - nats
+      - user_service
+      - product_service
     restart: unless-stopped
     networks:
       - some-network
@@ -68,6 +72,16 @@ services:
     image: redis:alpine
     ports:
       - 6379:6379
+    restart: unless-stopped
+    networks:
+      - some-network
+
+  nats:
+    container_name: service_nats
+    hostname: nats
+    image: nats:latest
+    ports:
+      - 4222:4222
     restart: unless-stopped
     networks:
       - some-network

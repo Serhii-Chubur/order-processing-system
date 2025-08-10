@@ -6,11 +6,13 @@ import (
 	"order_processing_system/db/psql"
 	"order_processing_system/db/redis"
 	"order_processing_system/product_service/internal/controllers"
+	"order_processing_system/product_service/internal/natsclient"
 	"order_processing_system/product_service/internal/server"
 	"order_processing_system/product_service/internal/services"
 	"os"
 	"os/signal"
 	"strconv"
+	"time"
 
 	"syscall"
 
@@ -54,8 +56,12 @@ func Run() error {
 	psqlRepo := psql.NewPSQLRepo(psqlConn)
 	redisRepo := redis.NewRedisRepo(redisConn)
 
+	//NATS
+	nats_url := os.Getenv("NATS_URL")
+	nats := natsclient.NewNATS(nats_url)
+
 	// service
-	productService := services.NewService(psqlRepo, redisRepo)
+	productService := services.NewService(psqlRepo, redisRepo, nats)
 
 	// controller
 	productController := controllers.NewController(errChan, productService)
@@ -84,6 +90,8 @@ func Run() error {
 		} else {
 			fmt.Println("Product Redis connection closed")
 		}
+
+		time.Sleep(20 * time.Millisecond)
 
 		server.StopServer(productSrv)
 		os.Exit(0)

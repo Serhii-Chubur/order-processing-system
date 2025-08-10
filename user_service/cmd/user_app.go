@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"time"
 
 	"syscall"
 
@@ -84,6 +85,8 @@ func Run() error {
 		} else {
 			fmt.Println("User Redis connection closed")
 		}
+
+		time.Sleep(20 * time.Millisecond)
 
 		server.StopServer(userSrv)
 		os.Exit(0)

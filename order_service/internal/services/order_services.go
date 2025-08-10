@@ -7,22 +7,27 @@ import (
 	"log"
 	"order_processing_system/db/psql"
 	"order_processing_system/db/redis"
+	"order_processing_system/order_service/internal/natsclient"
 	"order_processing_system/order_service/order_utils"
 	"order_processing_system/order_service/order_utils/models"
 	"order_processing_system/product_service/utils"
 	"strconv"
 	"time"
+
+	"github.com/nats-io/nats.go"
 )
 
 type Service struct {
-	RedisRepo *redis.RedisRepo
-	PSQLRepo  *psql.PostgresRepo
+	RedisRepo  *redis.RedisRepo
+	PSQLRepo   *psql.PostgresRepo
+	NATSClient *natsclient.OrderNATS
 }
 
-func NewService(psqlRepo *psql.PostgresRepo, redisRepo *redis.RedisRepo) *Service {
+func NewService(psqlRepo *psql.PostgresRepo, redisRepo *redis.RedisRepo, natsClient *natsclient.OrderNATS) *Service {
 	return &Service{
-		RedisRepo: redisRepo,
-		PSQLRepo:  psqlRepo,
+		RedisRepo:  redisRepo,
+		PSQLRepo:   psqlRepo,
+		NATSClient: natsClient,
 	}
 }
 
@@ -178,4 +183,39 @@ func (s *Service) UpdateOrderStatus(id string, status string) error {
 	}
 
 	return s.PSQLRepo.PutOrderStatus(o_id, status)
+}
+
+func (s *Service) ListenProductUpdates() error {
+	s.NATSClient.Subscribe("product.created", func(msg *nats.Msg) {
+		var product utils.Product
+		err := json.Unmarshal(msg.Data, &product)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		log.Printf("Product with id %d created, data: %v", product.ID, product)
+	})
+
+	s.NATSClient.Subscribe("product.updated", func(msg *nats.Msg) {
+		var product utils.Product
+		err := json.Unmarshal(msg.Data, &product)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		log.Printf("Product with id %d updated, data: %v", product.ID, product)
+	})
+
+	s.NATSClient.Subscribe("product.deleted", func(msg *nats.Msg) {
+		id := string(msg.Data)
+		log.Printf("Product with id %s deleted", id)
+	})
+
+	err := s.NATSClient.Conn.Flush()
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Listening for 'products' messages...")
+	select {}
 }

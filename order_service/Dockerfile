@@ -7,4 +7,4 @@ RUN go mod download
 
 COPY . .
 
-CMD ["go", "run", "./product_service/main.go"]
+CMD ["go", "run", "./order_service/main.go"]
