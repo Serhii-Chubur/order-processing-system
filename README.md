@@ -54,3 +54,28 @@ go run ./cmd/main.go
 ### User
 - **Email:** test@test.com
 - **Password:** 333333
+
+## API Endpoints
+### Product Service (Port: 8001)
+
+- GET /api/products - List all products
+- GET /api/products/{id} - Get product by ID
+- POST /api/products - Create product (admin)
+- PUT /api/products/{id} - Update product (admin)
+- DELETE /api/products/{id} - Delete product (admin)
+- GET /api/products/{id}/stock - Get product stock level
+
+### Order Service (Port: 8002)
+
+- POST /api/orders - Create new order
+- GET /api/orders/{id} - Get order by ID
+- GET /api/orders/user/{id} - Get orders by user ID
+- PUT /api/orders/{id}/status - Update order status
+
+### User Service (Port: 8003)
+
+- POST /api/users/register - Register new user
+- POST /api/users/login - User login
+- GET /api/users/{id} - Get user profile
+- PUT /api/users/{id} - Update user profile (name)
+- POST /api/users/logout - User logout
