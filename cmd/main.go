@@ -7,11 +7,19 @@ import (
 	order_app "order_processing_system/order_service/cmd"
 	product_app "order_processing_system/product_service/cmd"
 	user_app "order_processing_system/user_service/cmd"
+
+	"order_processing_system/db"
 )
 
 func main() {
 	log.SetFlags(log.Lshortfile | log.LstdFlags)
 	errChan := make(chan error)
+
+	err := db.RunMigration()
+
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	go func() {
 		fmt.Println("Hello product")

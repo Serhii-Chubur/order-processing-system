@@ -13,6 +13,7 @@ services:
       - psql
       - redis
       - nats
+      - db
     restart: unless-stopped
     networks:
       - some-network
@@ -30,6 +31,7 @@ services:
     depends_on:
       - psql
       - redis
+      - db
     restart: unless-stopped
     networks:
       - some-network
@@ -48,8 +50,23 @@ services:
       - psql
       - redis
       - nats
+      - db
       - user_service
       - product_service
+    restart: unless-stopped
+    networks:
+      - some-network
+
+  db:
+    container_name: service_db
+    hostname: db
+    env_file:
+      - db/configs/.env
+    build:
+      context: .
+      dockerfile: ./db/Dockerfile
+    depends_on:
+      - psql
     restart: unless-stopped
     networks:
       - some-network

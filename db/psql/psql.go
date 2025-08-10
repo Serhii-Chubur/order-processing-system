@@ -50,54 +50,6 @@ func ConnectPSQL(config PSQLConfig) *sqlx.DB {
 		log.Fatal(err)
 	}
 
-	_, err = DB.Exec(`CREATE TABLE IF NOT EXISTS product (
-		id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-		name VARCHAR(255) NOT NULL,
-		description TEXT,
-		price NUMERIC(10, 2) NOT NULL,
-		stock_quantity INT NOT NULL
-		)`)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	_, err = DB.Exec(`CREATE TABLE IF NOT EXISTS users (
-		id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-		username VARCHAR(255) NOT NULL,
-		email VARCHAR(255) NOT NULL,
-		password_hash TEXT NOT NULL,
-		is_admin BOOL NOT NULL,
-		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-		)`)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	_, err = DB.Exec(`CREATE TABLE IF NOT EXISTS orders (
-		id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-		user_id BIGINT NOT NULL REFERENCES users (id),
-		order_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-		status VARCHAR(255) NOT NULL,
-		total_amount NUMERIC(10, 2) NOT NULL
-	)`)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	_, err = DB.Exec(`CREATE TABLE IF NOT EXISTS order_product (
-		order_id BIGINT NOT NULL REFERENCES orders (id),
-		product_id BIGINT NOT NULL REFERENCES product (id),
-		quantity INT NOT NULL,
-		PRIMARY KEY (order_id, product_id)
-	)`)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	fmt.Println("Connected to PSQL")
 	return DB
 }
